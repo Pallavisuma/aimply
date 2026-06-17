@@ -269,6 +269,7 @@ function toast(html,spin){const t=document.getElementById("toast");t.innerHTML=(
 async function loadJobs(){
   const resp=await fetch("/api/jobs"); if(resp.status===401){ location.href="/login"; return; }
   const d=await resp.json();
+  if(!resp.ok || !d || !d.counts){ toast("⚠️ Couldn't load jobs: "+((d&&d.error)||("HTTP "+resp.status))); return; }
   JOBS=d.jobs||[];
   c("c-all",d.counts.total);c("c-auto",d.counts.AUTO);c("c-manual",d.counts.MANUAL);c("c-review",d.counts.REVIEW);c("c-applied",d.counts.applied||0);
   const ss=document.getElementById("src"),cur=ss.value; ss.innerHTML='<option value="">All sources</option>';

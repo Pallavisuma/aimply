@@ -12,6 +12,9 @@ export const enabled = isReal(url) && isReal(key);
 let sb = null;
 async function client(){
   if(sb) return sb;
+  if(typeof globalThis.WebSocket === 'undefined'){
+    try { globalThis.WebSocket = (await import('ws')).default; } catch {}
+  }
   const { createClient } = await import('@supabase/supabase-js');
   sb = createClient(url, key, { auth:{ persistSession:false } });
   return sb;

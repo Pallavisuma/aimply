@@ -323,6 +323,6 @@ const server=http.createServer(async (req,res)=>{
     if(req.method==='POST' && p==='/api/unapply'){ const b=await readBody(req); await setAppPatch(P, user.id, b.url, { applied:false, appliedAt:null }); return send(res,200,{ ok:true }); }
     if(req.method==='POST' && p==='/api/retarget'){ const b=await readBody(req); return send(res,200, await retarget(P, user.id, b)); }
     return send(res,404,{ error:'not found' });
-  }catch(err){ return send(res,500,{ error:err.message }); }
+  }catch(err){ console.error('[request error]', req.method, req.url, '->', err.message); return send(res,500,{ error:err.message }); }
 });
 server.listen(PORT, ()=>console.log(`\n  career-ops (multi-user) → http://localhost:${PORT}\n  data store: ${USE_SUPA ? 'Supabase' : 'local files'}\n  (Ctrl+C to stop)\n`));

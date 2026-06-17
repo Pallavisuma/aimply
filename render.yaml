@@ -10,7 +10,7 @@ services:
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
-        value: "20"
+        value: "22"
       - key: COOKIE_SECURE
         value: "1"
       # Fill these in the Render dashboard (Environment) — never commit secrets.
