@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aimply — sign in</title>
+<style>
+  :root{--bg:#0b0c10;--panel:#14161d;--line:#262a35;--txt:#eef0f5;--muted:#949cad;--accent:#8b7cff;--accent2:#6c5cff;}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(1200px 600px at 50% -10%,rgba(108,92,255,.18),transparent),var(--bg);color:var(--txt);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  .card{width:360px;max-width:92vw;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 24px}
+  h1{margin:0 0 4px;font-size:22px} .sub{color:var(--muted);font-size:13px;margin:0 0 18px}
+  label{display:block;font-size:12.5px;color:var(--muted);margin:12px 0 4px}
+  input{width:100%;background:#1d212b;color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:11px 12px;font-size:14px;outline:none}
+  input:focus{border-color:var(--accent)}
+  button{width:100%;margin-top:18px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:9px;padding:12px;font-size:15px;font-weight:650;cursor:pointer;box-shadow:0 3px 14px rgba(108,92,255,.4)}
+  button:disabled{opacity:.6}
+  .toggle{text-align:center;margin-top:14px;font-size:13px;color:var(--muted)}
+  .toggle a{color:var(--accent);cursor:pointer}
+  .err{color:#ff7a7a;font-size:13px;margin-top:12px;min-height:0}
+  .name-row{display:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px"><span style="width:13px;height:13px;border-radius:4px;background:linear-gradient(135deg,var(--accent),#3ad8c0);box-shadow:0 0 12px rgba(139,124,255,.6)"></span><span style="font-weight:700;letter-spacing:-.2px">Aimply</span></div>
+  <h1 id="title">Welcome back</h1>
+  <p class="sub" id="sub">Sign in to your Aimply dashboard.</p>
+  <div class="name-row" id="nameRow"><label>Name</label><input id="name" type="text" placeholder="Your name"></div>
+  <label>Email</label><input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+  <label>Password</label><input id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+  <button id="go">Sign in</button>
+  <div class="err" id="err"></div>
+  <div class="toggle" id="toggle">New here? <a id="switch">Create an account</a></div>
+</div>
+<script>
+  let mode="login";
+  const $=id=>document.getElementById(id);
+  function render(){
+    const signup=mode==="signup";
+    $("title").textContent=signup?"Create your account":"Welcome back";
+    $("sub").textContent=signup?"Start tracking and tailoring your job search.":"Sign in to your Aimply dashboard.";
+    $("nameRow").style.display=signup?"block":"none";
+    $("go").textContent=signup?"Create account":"Sign in";
+    $("toggle").innerHTML=signup?'Already have an account? <a id="switch">Sign in</a>':'New here? <a id="switch">Create an account</a>';
+    $("switch").onclick=()=>{ mode=signup?"login":"signup"; render(); };
+  }
+  async function submit(){
+    $("err").textContent="";
+    const body={ email:$("email").value.trim(), password:$("password").value };
+    if(mode==="signup") body.name=$("name").value.trim();
+    $("go").disabled=true;
+    try{
+      const r=await fetch("/api/"+(mode==="signup"?"signup":"login"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      const d=await r.json();
+      if(d.ok) location.href="/"; else $("err").textContent=d.error||"Failed";
+    }catch(e){ $("err").textContent=e.message; }
+    $("go").disabled=false;
+  }
+  $("go").onclick=submit;
+  $("password").addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); });
+  if(location.hash==="#signup") mode="signup";
+  render();
+</script>
+</body>
+</html>

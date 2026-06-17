@@ -45,3 +45,18 @@ bun.lock
 .claude/memory/
 career-dashboard
 package-lock.json
+# Per-account sensitive files — never commit (daily scan doesn't need them)
+data/users/**/cv.md
+data/users/**/cv.md.bak
+data/users/**/profile.yml
+data/users/**/applications.json
+data/users/**/tailored/
+data/users/**/.prefill-batch.json
+data/users.json
+data/.sessions.json
+
+# Backups, scratch, and runtime data (Supabase is the store — don't commit data)
+*.bak
+scratch/
+data/
+!data/.gitkeep

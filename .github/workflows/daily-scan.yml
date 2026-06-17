@@ -1,0 +1,76 @@
+# Daily per-account market scan → combined email digest.
+#
+# Runs scan.mjs for every account under data/users/<id>/ using that
+# account's own saved searches, then emails a combined digest of the
+# roles found today. Pre-fill/tailoring are NOT run in the cloud.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   JSEARCH_API_KEY  ADZUNA_APP_ID  ADZUNA_APP_KEY  JOOBLE_API_KEY   # search
+#   MAIL_SERVER  MAIL_PORT  MAIL_USERNAME  MAIL_PASSWORD  MAIL_TO     # email
+#
+# PRIVACY: only non-sensitive per-account files are committed
+# (portals.yml = saved searches, scan-history.tsv, pipeline.md).
+# Résumés (cv.md), profiles (profile.yml), applications.json, tailored
+# PDFs, users.json (password hashes) and .env are NEVER committed.
+#
+# ONE-TIME before first run — seed the non-sensitive account files so the
+# cloud job can see your accounts and searches (run in the repo):
+#   git add -f data/users/*/portals.yml data/users/*/scan-history.tsv data/users/*/pipeline.md
+#   git commit -m "seed accounts for daily scan"
+#
+# Runs 13:00 UTC daily (~6am PT). Adjust the cron below as you like.
+
+name: Daily job scan
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Daily scan (all accounts)
+        id: digest
+        env:
+          JSEARCH_API_KEY: ${{ secrets.JSEARCH_API_KEY }}
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          JOOBLE_API_KEY: ${{ secrets.JOOBLE_API_KEY }}
+        run: node daily.mjs
+
+      - name: Commit updated searches & history (non-sensitive only)
+        run: |
+          git config user.name  "career-ops-bot"
+          git config user.email "actions@github.com"
+          git add -f data/users/*/portals.yml data/users/*/scan-history.tsv data/users/*/pipeline.md 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: daily scan ${{ steps.digest.outputs.digest_date }}"
+            git push
+          fi
+
+      - name: Email digest
+        if: steps.digest.outputs.new_count != '0'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "career-ops · ${{ steps.digest.outputs.new_count }} new roles (${{ steps.digest.outputs.digest_date }})"
+          to: ${{ secrets.MAIL_TO }}
+          from: career-ops <${{ secrets.MAIL_USERNAME }}>
+          html_body: file://data/daily-digest.html

@@ -1,0 +1,30 @@
+# Render deploy config for Aimply. Create a Web Service from this repo.
+services:
+  - type: web
+    name: aimply
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.mjs
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: COOKIE_SECURE
+        value: "1"
+      # Fill these in the Render dashboard (Environment) — never commit secrets.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE
+        sync: false
+      - key: JSEARCH_API_KEY
+        sync: false
+      - key: ADZUNA_APP_ID
+        sync: false
+      - key: ADZUNA_APP_KEY
+        sync: false
+      - key: JOOBLE_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

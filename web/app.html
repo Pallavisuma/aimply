@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aimply</title>
+<style>
+  :root{
+    --bg:#f4f8fd; --bg2:#eaf2fb; --panel:#ffffff; --panel2:#f3f8fe; --line:#e2e9f3; --line2:#cfdbea;
+    --txt:#142339; --muted:#5b6b85; --faint:#9aa7bd;
+    --accent:#4f9cf9; --accent2:#3b82f6; --accent-soft:rgba(79,156,249,.13);
+    --auto:#16a34a; --auto-bg:rgba(22,163,74,.10); --manual:#d97706; --manual-bg:rgba(217,119,6,.12); --review:#64748b; --review-bg:rgba(100,116,139,.10);
+    --radius:14px; --shadow:0 6px 22px rgba(20,45,90,.09);
+  }
+  html[data-theme="dark"]{
+    --bg:#0a0b0f; --bg2:#0e1016; --panel:#14161e; --panel2:#181b24; --line:#23262f; --line2:#30343f;
+    --txt:#eef0f6; --muted:#8b93a4; --faint:#5c6373;
+    --accent:#8b7cff; --accent2:#6c5cff; --accent-soft:rgba(124,108,255,.14);
+    --auto:#34d399; --auto-bg:rgba(52,211,153,.12); --manual:#fbbf24; --manual-bg:rgba(251,191,36,.12); --review:#94a3b8; --review-bg:rgba(148,163,184,.12);
+    --shadow:0 8px 30px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(1100px 520px at 78% -8%,var(--accent-soft),transparent),var(--bg);
+    color:var(--txt);font:14.5px/1.55 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  ::selection{background:var(--accent-soft)}
+  input,select,button,textarea{font-family:inherit}
+  input,select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-size:13.5px;outline:none;transition:border-color .15s,box-shadow .15s}
+  input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  input::placeholder{color:var(--faint)}
+
+  /* App bar */
+  header{position:sticky;top:0;z-index:20;backdrop-filter:blur(12px);background:var(--bg);border-bottom:1px solid var(--line);padding:14px 26px}
+  h1{margin:0;font-size:16px;display:flex;align-items:center;justify-content:space-between;font-weight:600}
+  h1 .brand{display:inline-flex;align-items:center;gap:10px;font-size:17px;letter-spacing:-.3px}
+  h1 .brand::before{content:"";width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--accent),#34d3c0);box-shadow:0 0 16px rgba(139,124,255,.55)}
+  h1 .brand b{font-weight:700;background:linear-gradient(90deg,var(--accent2),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--muted);font-size:12.5px}
+  #userChip{font-weight:500;color:var(--txt)}
+  #userChip::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--auto);margin-right:7px;vertical-align:middle}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:0 26px}
+
+  /* Hero search */
+  .searchbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:26px 0 4px}
+  .searchbar input{flex:1;min-width:260px;font-size:15px;padding:14px 16px;border-radius:12px}
+  #toast{color:var(--muted);font-size:13px;transition:.2s;padding:0}
+  #toast.show{padding:10px 0 2px}
+  #toast b{color:var(--txt)} #toast code{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12px}
+
+  /* Drawer panels */
+  details.target{margin:12px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 18px;transition:border-color .15s}
+  details.target[open]{border-color:var(--line2)}
+  details.target summary{cursor:pointer;font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.target summary::-webkit-details-marker{display:none}
+  details.target summary::before{content:"›";color:var(--accent);font-size:18px;transition:transform .15s;display:inline-block}
+  details.target[open] summary::before{transform:rotate(90deg)}
+  .pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 16px;margin-top:4px}
+  .pgrid label{display:block;font-size:11.5px;color:var(--muted);margin:0 0 4px;text-transform:uppercase;letter-spacing:.4px}
+  .pgrid input{width:100%}
+  @media(max-width:640px){ .pgrid{grid-template-columns:1fr} }
+
+  /* Buttons */
+  .btn{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 15px;color:var(--txt);cursor:pointer;font-size:13.5px;white-space:nowrap;transition:.13s;font-weight:500}
+  .btn:hover{border-color:var(--accent);background:var(--panel)}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;box-shadow:0 4px 16px rgba(108,92,255,.38)}
+  .btn.primary:hover{filter:brightness(1.07)}
+  .btn.sm{padding:7px 11px;font-size:12.5px;border-radius:9px}
+  .btn:disabled{opacity:.5;cursor:default}
+
+  /* Stats */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:18px 0 8px}
+  @media(max-width:760px){ .stats{grid-template-columns:repeat(2,1fr)} }
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px;cursor:pointer;transition:transform .13s,border-color .13s,box-shadow .13s;user-select:none;position:relative;overflow:hidden}
+  .stat:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--line2)}
+  .stat.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow)}
+  .stat .n{font-size:27px;font-weight:750;letter-spacing:-.5px}
+  .stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
+  .stat.auto .n{color:var(--auto)} .stat.manual .n{color:var(--manual)} .stat.review .n{color:var(--review)} .stat.applied .n{color:var(--accent)}
+
+  /* Filters */
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:6px 0 8px}
+  #q{flex:1;min-width:200px}
+  .chk{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+  .filters label{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px;cursor:pointer}
+
+  /* Bulk bar */
+  .selbar{position:sticky;top:60px;z-index:15;display:none;gap:10px;align-items:center;flex-wrap:wrap;
+    background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--accent);border-radius:12px;padding:11px 16px;margin:8px 0;box-shadow:var(--shadow)}
+  .selbar.show{display:flex}
+  .selbar .count{font-weight:650;margin-right:4px}
+
+  main{padding:2px 0 80px}
+  .row{display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid var(--line);border-radius:13px;background:var(--panel);margin-bottom:9px;transition:border-color .12s,transform .12s,box-shadow .12s}
+  .row:hover{border-color:var(--line2);box-shadow:var(--shadow);transform:translateY(-1px)}
+  .row.sel{border-color:var(--accent);background:linear-gradient(180deg,rgba(124,108,255,.07),transparent)}
+  .row.done{opacity:.5}
+  .row .meta{flex:1;min-width:0}
+  .row .co{font-weight:650;font-size:14.5px}
+  .row .ti{color:var(--muted);font-size:13px}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .badge{font-size:10.5px;padding:3px 9px;border-radius:30px;border:1px solid var(--line);color:var(--muted);font-weight:500}
+  .badge.q-AUTO{color:var(--auto);background:var(--auto-bg);border-color:transparent}
+  .badge.q-MANUAL{color:var(--manual);background:var(--manual-bg);border-color:transparent}
+  .badge.q-REVIEW{color:var(--review);background:var(--review-bg);border-color:transparent}
+  .actions{display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;max-width:380px}
+  .open{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:9px;padding:8px 13px;font-weight:600;cursor:pointer;font-size:12.5px}
+  .open:hover{filter:brightness(1.08);text-decoration:none}
+  .mark{background:transparent;border:1px solid var(--line);border-radius:9px;padding:8px 11px;color:var(--muted);cursor:pointer;font-size:12.5px;transition:.12s}
+  .mark:hover{border-color:var(--accent);color:var(--txt);text-decoration:none}
+  .empty{color:var(--muted);text-align:center;padding:64px 0}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px;margin-right:7px}
+  @keyframes s{to{transform:rotate(360deg)}}
+
+  /* Setup */
+  #setup{display:none;max-width:840px;margin:0 auto;padding-top:8px} #setup.show{display:block} #app.hide{display:none}
+  #setup h2{font-size:16px;margin:22px 0 8px} #setup .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px}
+  #setup code,#setup pre{background:var(--bg2);border:1px solid var(--line);border-radius:8px} #setup code{padding:2px 6px;font-size:13px} #setup pre{padding:13px 15px;overflow:auto;font-size:13px;margin:8px 0}
+  #setup ol{margin:6px 0 0;padding-left:20px} #setup li{margin:5px 0}
+
+  .modal{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(8,15,30,.55);backdrop-filter:blur(3px);padding:24px}
+  .modal.show{display:flex}
+  .modal-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;width:min(900px,96vw);height:min(85vh,900px);display:flex;flex-direction:column;box-shadow:var(--shadow);overflow:hidden}
+  .modal-head,.modal-foot{display:flex;align-items:center;justify-content:space-between;padding:14px 18px}
+  .modal-head{border-bottom:1px solid var(--line)} .modal-foot{border-top:1px solid var(--line);gap:12px}
+  .modal iframe{flex:1;border:0;background:#fff;width:100%}
+
+  #drawer{position:fixed;top:0;right:0;height:100%;width:min(460px,94vw);background:var(--bg);border-left:1px solid var(--line);box-shadow:var(--shadow);transform:translateX(100%);transition:transform .22s ease;z-index:60;display:flex;flex-direction:column}
+  #drawer.open{transform:translateX(0)}
+  .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line);font-size:15px}
+  .drawer-body{padding:14px 18px;overflow:auto;flex:1}
+  .drawer-body details.target{margin:0 0 12px}
+  #drawerBackdrop{position:fixed;inset:0;background:rgba(8,15,30,.42);z-index:55;display:none}
+  #drawerBackdrop.show{display:block}
+
+  header .nav{display:flex;align-items:center;gap:6px}
+  header .nav .btn{background:transparent;border:1px solid transparent;color:var(--muted);font-weight:500}
+  header .nav .btn:hover{background:var(--panel2);border-color:var(--line);color:var(--txt)}
+  header h1{font-size:15px}
+  header h1 .brand{font-size:18px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="brand"><b>Aimply</b></span> <span class="nav"><span id="userChip" class="sub" style="align-self:center"></span><span id="profileToggle" class="btn sm">👤 Profile</span><span id="targetsToggle" class="btn sm">🎯 Targets</span><span id="themeToggle" class="btn sm" title="Toggle theme">🌙</span><span id="setupToggle" class="btn sm">⚙️ Setup</span><span id="logoutBtn" class="btn sm">Log out</span></span></h1>
+  <div class="sub" id="meta">Loading…</div>
+</header>
+
+<div id="drawerBackdrop"></div>
+<aside id="drawer">
+  <div class="drawer-head"><b>Settings</b><span id="drawerClose" class="btn sm">Close ✕</span></div>
+  <div class="drawer-body">
+  <details class="target" id="profilePanel" open>
+    <summary>👤 My details (used to pre-fill applications)</summary>
+    <div style="margin-top:10px">
+      <p class="sub" style="margin:0 0 10px">Saved to your account and used to auto-fill name, email, phone, links and location on application forms.</p>
+      <div class="pgrid">
+        <div><label>Full name</label><input id="pf_full_name" type="text" placeholder="Jane Doe"></div>
+        <div><label>Email</label><input id="pf_email" type="email" placeholder="jane@example.com"></div>
+        <div><label>Phone</label><input id="pf_phone" type="tel" placeholder="+1 (555) 555-5555"></div>
+        <div><label>Location</label><input id="pf_location" type="text" placeholder="San Francisco, CA"></div>
+        <div><label>LinkedIn</label><input id="pf_linkedin" type="text" placeholder="linkedin.com/in/you"></div>
+        <div><label>GitHub</label><input id="pf_github" type="text" placeholder="github.com/you"></div>
+        <div><label>Portfolio / website</label><input id="pf_portfolio_url" type="text" placeholder="https://you.dev"></div>
+        <div><label>Work authorization</label><input id="pf_work_authorization" type="text" placeholder="US citizen / No sponsorship needed"></div>
+      </div>
+      <button id="saveProfile" class="btn primary" style="margin-top:12px">Save details</button>
+      <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
+        <label style="display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Résumé (used for tailoring &amp; the upload field)</label>
+        <div id="resumeStatus" class="sub" style="margin-bottom:8px">Checking…</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input id="profResumeFile" type="file" accept=".md,.txt,.pdf,.doc,.docx" style="border:none;padding:0;color:var(--muted)">
+          <button id="uploadResume" class="btn">Upload résumé</button>
+          <a id="viewResume" class="btn" target="_blank" style="display:none">View current résumé</a>
+        </div>
+      </div>
+    </div>
+  </details>
+  <details class="target" id="targetPanel" open>
+    <summary>🎯 Set my target roles / upload a résumé</summary>
+    <div style="margin-top:10px">
+      <p class="sub" style="margin:0 0 8px">Re-points the agent's saved searches and fetches those roles. Optional résumé upload for tailoring (.md/.txt direct; PDF via Gemini).</p>
+      <input id="roles" type="text" placeholder="Roles, comma-separated — e.g. Data Scientist, Computer Vision Engineer" style="width:100%;margin-bottom:8px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input id="resumeFile" type="file" accept=".md,.txt,.pdf,.doc,.docx" style="border:none;padding:0;color:var(--muted)">
+        <button id="retargetBtn" class="btn primary">Update &amp; fetch</button>
+      </div>
+    </div>
+  </details>
+    <details class="target" id="setupPanel"><summary>⚙️ Setup &amp; keys</summary><div style="margin-top:10px">
+  <div class="card"><h2>1 · Get free API keys</h2>
+    <p><b>JSearch</b>: <a href="https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch" target="_blank">RapidAPI</a> → Subscribe Basic ($0) → <a href="https://rapidapi.com/developer/apps" target="_blank">My Apps</a> → Security → copy Application Key = <code>JSEARCH_API_KEY</code>.</p>
+    <p><b>Adzuna</b>: <a href="https://developer.adzuna.com/" target="_blank">developer.adzuna.com</a> → create app → <code>ADZUNA_APP_ID</code>, <code>ADZUNA_APP_KEY</code>.</p>
+    <p><b>Gemini</b> (for tailoring/PDF import): <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> = <code>GEMINI_API_KEY</code>.</p>
+  </div>
+  <div class="card"><h2>2 · Save in <code>.env</code></h2><pre>JSEARCH_API_KEY=...
+ADZUNA_APP_ID=...
+ADZUNA_APP_KEY=...
+GEMINI_API_KEY=...</pre></div>
+  <div class="card"><h2>3 · Pre-fill needs a browser once</h2><pre>npx playwright install chromium</pre>
+    <p>Queues: <span class="badge q-AUTO">AUTO</span> pre-fillable · <span class="badge q-MANUAL">MANUAL</span> apply yourself · <span class="badge q-REVIEW">REVIEW</span> eyeball first. Everything is US-only and de-duplicated.</p>
+  </div>
+    </div></details>
+  </div>
+</aside>
+<div class="wrap">
+<div id="app">
+  <div class="searchbar">
+    <input id="title" type="search" placeholder="Search titles (comma-separated) — e.g. AI Engineer, ML Engineer, GenAI Engineer, Applied Scientist">
+    <select id="fetchWindow" title="How far back to fetch postings"><option value="month">Past month</option><option value="week">Past week</option><option value="3days">Past 3 days</option><option value="today">Today</option><option value="any">Any time</option></select>
+    <button id="fetchBtn" class="btn primary" title="Search the job boards (JSearch, Adzuna, Jooble, The Muse, Remotive) for the titles you type">Search boards</button>
+    <button id="scanBtn" class="btn" title="Scan all tracked company career pages (Greenhouse, Lever, Ashby) for your target roles">Scan companies</button>
+  </div>
+  <div class="sub" style="padding:6px 2px 0">⌕ <b>Search boards</b> = job aggregators for the titles you type · <b>Scan companies</b> = Greenhouse/Lever/Ashby career pages for your saved target roles.</div>
+  <div id="toast"></div>
+
+
+
+  <div class="stats">
+    <div class="stat active" data-q="ALL"><div class="n" id="c-all">–</div><div class="l">All</div></div>
+    <div class="stat auto" data-q="AUTO"><div class="n" id="c-auto">–</div><div class="l">✅ Auto</div></div>
+    <div class="stat manual" data-q="MANUAL"><div class="n" id="c-manual">–</div><div class="l">✋ Manual</div></div>
+    <div class="stat review" data-q="REVIEW"><div class="n" id="c-review">–</div><div class="l">🔎 Review</div></div>
+    <div class="stat applied" data-q="APPLIED"><div class="n" id="c-applied">–</div><div class="l">📨 Applied</div></div>
+  </div>
+
+  <div class="filters">
+    <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px"><input type="checkbox" id="selAll" class="chk"> Select all</label>
+    <input id="q" type="search" placeholder="Filter by company or title…">
+    <input id="locq" type="search" placeholder="Location…" style="max-width:150px">
+    <select id="src"><option value="">All sources</option></select>
+    <select id="roleFilter"><option value="">All roles</option></select>
+    <select id="appliedSel"><option value="all">Applied: all</option><option value="no">Not applied</option><option value="yes">Applied only</option></select>
+    <select id="recency"><option value="">Posted: any time</option><option value="1">Posted: 24h</option><option value="3">Posted: 3 days</option><option value="7">Posted: 7 days</option><option value="14">Posted: 14 days</option><option value="30">Posted: 30 days</option></select>
+    <select id="sortBy"><option value="new">Sort: Newest</option><option value="company">Sort: Company</option><option value="old">Sort: Oldest</option></select>
+    <span id="showing" class="sub" style="margin-left:auto"></span>
+  </div>
+
+  <div class="selbar" id="selbar">
+    <span class="count" id="selCount">0 selected</span>
+    <button class="btn sm primary" id="bulkPrefill">Pre-fill selected</button>
+    <button class="btn sm" id="bulkTailor">Tailor selected</button>
+    <button class="btn sm" id="bulkApplied">Mark applied</button>
+    <button class="btn sm" id="bulkOpen">Open all</button>
+    <button class="btn sm" id="bulkClear">Clear</button>
+  </div>
+
+  <main><div id="list"><div class="empty">Loading jobs…</div></div></main>
+</div>
+</div>
+
+<div class="modal" id="previewModal">
+  <div class="modal-card">
+    <div class="modal-head"><b id="previewTitle">Tailored résumé preview</b><span id="previewClose" class="btn sm">Close ✕</span></div>
+    <iframe id="previewFrame" title="résumé preview"></iframe>
+    <div class="modal-foot"><span class="sub">Review your tailored résumé — nothing is submitted automatically.</span><button id="previewPrefill" class="btn primary">Pre-fill this application →</button></div>
+  </div>
+</div>
+<script>
+let JOBS=[]; const sel=new Set();
+const state={ q:"", loc:"", queue:"ALL", src:"", applied:"all", role:"", recency:"", sort:"new" };
+function fetchWin(){ const el=document.getElementById("fetchWindow"); return el?el.value:"month"; }
+
+const shortDate=s=>{try{return new Date(s).toLocaleDateString();}catch(e){return"";}};
+const fileName=p=>(p||"").split("/").pop();
+function toast(html,spin){const t=document.getElementById("toast");t.innerHTML=(spin?'<span class="spin"></span>':'')+html;t.classList.add("show");}
+
+async function loadJobs(){
+  const resp=await fetch("/api/jobs"); if(resp.status===401){ location.href="/login"; return; }
+  const d=await resp.json();
+  JOBS=d.jobs||[];
+  c("c-all",d.counts.total);c("c-auto",d.counts.AUTO);c("c-manual",d.counts.MANUAL);c("c-review",d.counts.REVIEW);c("c-applied",d.counts.applied||0);
+  const ss=document.getElementById("src"),cur=ss.value; ss.innerHTML='<option value="">All sources</option>';
+  for(const x of d.sources){const o=document.createElement("option");o.value=x;o.textContent=x;ss.appendChild(o);} ss.value=cur;
+  document.getElementById("meta").textContent=d.counts.total+" roles (US-only, de-duplicated) · updated "+new Date(d.generated).toLocaleString();
+  // drop selections no longer present
+  for(const u of [...sel]) if(!JOBS.find(j=>j.url===u)) sel.delete(u);
+  render();
+}
+function c(id,v){document.getElementById(id).textContent=v;}
+
+function filtered(){
+  return JOBS.filter(j=>{
+    if(state.queue==="APPLIED"){ if(!j.applied) return false; }
+    else if(state.queue!=="ALL" && j.queue!==state.queue) return false;
+    if(state.src && j.source!==state.src) return false;
+    if(state.applied==="yes" && !j.applied) return false;
+    if(state.applied==="no" && j.applied) return false;
+    if(state.loc && !(j.location||"").toLowerCase().includes(state.loc.toLowerCase())) return false;
+    if(state.role && !(j.title||"").toLowerCase().includes(state.role.toLowerCase())) return false;
+    if(state.recency){ const ref=j.posted||j.firstSeen; const d=(Date.now()-new Date(ref||0).getTime())/86400000; if(!(d<=Number(state.recency))) return false; }
+    if(state.q && (j.company+" "+j.title).toLowerCase().indexOf(state.q.toLowerCase())===-1) return false;
+    return true;
+  });
+}
+
+function render(){
+  const list=document.getElementById("list"); list.textContent="";
+  let shown=filtered();
+  shown.sort((a,b)=>{
+    const ap=(a.applied?1:0)-(b.applied?1:0); if(ap) return ap;
+    const tm=j=>{ const d=new Date(j.posted||j.firstSeen||0).getTime(); return isNaN(d)?0:d; };
+    if(state.sort==="new") return tm(b)-tm(a);
+    if(state.sort==="old") return tm(a)-tm(b);
+    return (a.company||"").localeCompare(b.company||"") || (a.title||"").localeCompare(b.title||"");
+  });
+  document.getElementById("showing").textContent="Showing "+shown.length+" of "+JOBS.length;
+  updateSelBar();
+  if(!shown.length){const e=document.createElement("div");e.className="empty";e.textContent="No jobs match. Search a title above, retarget, or clear filters.";list.appendChild(e);return;}
+  for(const j of shown){
+    const row=document.createElement("div"); row.className="row"+(j.applied?" done":"")+(sel.has(j.url)?" sel":"");
+    const cb=document.createElement("input"); cb.type="checkbox"; cb.className="chk"; cb.checked=sel.has(j.url);
+    cb.onclick=()=>{ cb.checked?sel.add(j.url):sel.delete(j.url); render(); };
+    const meta=document.createElement("div"); meta.className="meta";
+    const co=document.createElement("div"); co.className="co"; co.textContent=j.company;
+    const ti=document.createElement("div"); ti.className="ti"; ti.textContent=j.title;
+    const badges=document.createElement("div"); badges.className="badges";
+    const badge=(t,cl)=>{const b=document.createElement("span");b.className="badge "+(cl||"");b.textContent=t;return b;};
+    badges.appendChild(badge(j.queue,"q-"+j.queue));
+    if(j.source) badges.appendChild(badge(j.source));
+    if(j.location) badges.appendChild(badge(j.location));
+    { const when=j.posted||j.firstSeen; if(when) badges.appendChild(badge((j.posted?'posted ':'added ')+String(when).slice(0,10))); }
+    if(j.applied) badges.appendChild(badge("applied "+shortDate(j.appliedAt),"q-AUTO"));
+    else if(j.tailoredResume) badges.appendChild(badge("tailored","q-REVIEW"));
+    meta.append(co,ti,badges);
+    const usedPath=j.resumeUsed||j.tailoredResume;
+    if(j.applied&&usedPath){const note=document.createElement("div");note.className="ti";const a=document.createElement("a");a.href="/files/"+usedPath;a.target="_blank";a.textContent=fileName(usedPath);note.append(document.createTextNode("résumé: "));note.append(a);meta.append(note);}
+    const actions=document.createElement("div"); actions.className="actions";
+    const open=document.createElement("a");open.className="open";open.textContent="Open ↗";open.href=j.url;open.target="_blank";open.rel="noopener";
+    const tbtn=document.createElement("button");tbtn.className="mark";tbtn.textContent=j.tailoredResume?"✓ Tailored":"Tailor";tbtn.onclick=()=>doTailor(j,tbtn);
+    actions.append(open,tbtn);
+    if(j.tailoredResume){const v=document.createElement("a");v.className="mark";v.textContent="Résumé";v.href="/files/"+j.tailoredResume;v.target="_blank";actions.append(v);}
+    const pbtn=document.createElement("button");pbtn.className="mark";pbtn.textContent="Pre-fill";pbtn.onclick=()=>doPrefill(j,pbtn);
+    const mark=document.createElement("button");mark.className="mark";mark.textContent=j.applied?"✓ Applied":"Mark applied";mark.onclick=()=>j.applied?unapplyJob(j):applyJob(j);
+    actions.append(pbtn,mark);
+    row.append(cb,meta,actions); list.appendChild(row);
+  }
+}
+
+function updateSelBar(){
+  const bar=document.getElementById("selbar");
+  document.getElementById("selCount").textContent=sel.size+" selected";
+  bar.classList.toggle("show",sel.size>0);
+}
+
+/* ── single-job actions ── */
+async function doTailor(j,btn){
+  btn.disabled=true;const old=btn.textContent;btn.textContent="…";
+  toast('Tailoring résumé for “'+j.title+'” at '+j.company+'…',true);
+  try{const d=await(await fetch("/api/tailor",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:j.url,company:j.company,title:j.title})})).json();
+    if(!d.ok){toast('⚠️ '+(d.error||'Tailoring failed — is GEMINI_API_KEY set?'));btn.textContent=old;}
+    else{toast('Tailored résumé ready — use the Résumé link.'+(d.pdfNote?' <span style="color:var(--manual)">'+d.pdfNote+'</span>':''));await loadJobs();}
+  }catch(e){toast('⚠️ '+e.message);btn.textContent=old;}
+  btn.disabled=false;
+}
+async function doPrefill(j,btn){
+  btn=btn||{};
+  if('disabled' in btn) btn.disabled=true;
+  toast(j.queue==="MANUAL"?'Opening '+j.company+' (manual — login/CAPTCHA)…':'Opening & pre-filling '+j.company+'…',true);
+  try{const d=await(await fetch("/api/prefill",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:j.url,resume:j.tailoredResume||null})})).json();
+    toast(d.ok?d.message:('⚠️ '+(d.error||'Pre-fill failed')));}catch(e){toast('⚠️ '+e.message);}
+  if('disabled' in btn) btn.disabled=false;
+}
+async function applyJob(j){
+  try{const d=await(await fetch("/api/apply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:j.url,company:j.company,title:j.title,resume:j.tailoredResume||null})})).json();
+    toast(d.ok?('Marked applied: '+j.company+(d.resumeUsed?(' · '+fileName(d.resumeUsed)):'')):'⚠️ failed');await loadJobs();}catch(e){toast('⚠️ '+e.message);}
+}
+async function unapplyJob(j){try{await fetch("/api/unapply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:j.url})});await loadJobs();}catch(e){toast('⚠️ '+e.message);}}
+
+/* ── bulk actions ── */
+function selectedJobs(){return JOBS.filter(j=>sel.has(j.url));}
+async function bulkPrefill(){
+  const jobs=selectedJobs(); if(!jobs.length)return;
+  toast('Opening '+jobs.length+' tab(s) and pre-filling each…',true);
+  try{const d=await(await fetch("/api/prefill-batch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jobs:jobs.map(j=>({url:j.url,resume:j.tailoredResume||null}))})})).json();
+    toast(d.ok?d.message:('⚠️ '+(d.error||'failed')));}catch(e){toast('⚠️ '+e.message);}
+}
+async function bulkTailor(){
+  const jobs=selectedJobs(); if(!jobs.length)return; let n=0;
+  for(const j of jobs){ n++; toast('Tailoring '+n+'/'+jobs.length+': '+j.company+'…',true);
+    try{await fetch("/api/tailor",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:j.url,company:j.company,title:j.title})});}catch(e){}
+  }
+  toast('Tailored '+jobs.length+' résumé(s).');await loadJobs();
+}
+async function bulkApplied(){
+  const jobs=selectedJobs(); if(!jobs.length)return;
+  for(const j of jobs){try{await fetch("/api/apply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:j.url,company:j.company,title:j.title,resume:j.tailoredResume||null})});}catch(e){}}
+  toast('Marked '+jobs.length+' applied.');sel.clear();await loadJobs();
+}
+function bulkOpen(){selectedJobs().forEach(j=>window.open(j.url,"_blank","noopener"));}
+function bulkClear(){sel.clear();render();}
+
+/* ── search / scan / retarget ── */
+async function doSearch(){
+  const title=document.getElementById("title").value.trim(); if(!title){document.getElementById("title").focus();return;}
+  addSearchedTitles(title.split(/[,\n]/));
+  const b=document.getElementById("fetchBtn");b.disabled=true;toast('Searching the US market for “'+title+'”…',true);
+  try{const d=await(await fetch("/api/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title, window:fetchWin()})})).json();
+    let m='Added <b>'+d.added+'</b> new (found '+d.found+').';
+    if(d.bySource) m+=' '+Object.entries(d.bySource).map(([k,v])=>k+': '+v).join(' · ');
+    if(d.errors&&d.errors.length)m+=' <span style="color:var(--manual)">'+d.errors.map(clip).join('; ')+'</span>';
+    toast(m);await loadJobs();}catch(e){toast('⚠️ '+e.message);}
+  b.disabled=false;
+}
+async function doScan(){
+  const b=document.getElementById("scanBtn");b.disabled=true;toast('Running full scan… can take a minute.',true);
+  try{const d=await(await fetch("/api/scan",{method:"POST"})).json();toast(d.ok?'Full scan done.':'⚠️ scan exit '+d.code);await loadJobs();}catch(e){toast('⚠️ '+e.message);}
+  b.disabled=false;
+}
+function readB64(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=rej;fr.onload=()=>res(String(fr.result).split(",").pop());fr.readAsDataURL(file);});}
+async function doRetarget(){
+  const roles=document.getElementById("roles").value.trim();const f=document.getElementById("resumeFile").files[0];
+  if(!roles&&!f){toast('Enter roles or pick a résumé.');return;}
+  const b=document.getElementById("retargetBtn");b.disabled=true;toast('Re-pointing'+(roles?(' to: '+roles):'')+' and fetching…',true);
+  try{const body={roles, window:fetchWin()};if(f)body.resume={name:f.name,mime:f.type||"application/octet-stream",base64:await readB64(f)};
+    const d=await(await fetch("/api/retarget",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+    if(!d.ok){toast('⚠️ '+(d.error||'failed'));}
+    else{let m='Targets updated'+(d.roles&&d.roles.length?(': '+d.roles.join(', ')):'')+'. Added <b>'+d.added+'</b>.';
+      if(d.bySource) m+=' '+Object.entries(d.bySource).map(([k,v])=>k+': '+v).join(' · ');
+      if(d.roles)addSearchedTitles(d.roles); if(d.resumeNote)m+=' ('+clip(d.resumeNote)+')';if(d.errors&&d.errors.length)m+=' <span style="color:var(--manual)">'+d.errors.map(clip).join('; ')+'</span>';toast(m);await loadJobs();}
+  }catch(e){toast('⚠️ '+e.message);}
+  b.disabled=false;
+}
+
+/* ── wiring ── */
+document.getElementById("fetchBtn").onclick=doSearch;
+document.getElementById("scanBtn").onclick=doScan;
+document.getElementById("retargetBtn").onclick=doRetarget;
+document.getElementById("title").addEventListener("keydown",e=>{if(e.key==="Enter")doSearch();});
+document.getElementById("q").addEventListener("input",e=>{state.q=e.target.value;render();});
+document.getElementById("locq").addEventListener("input",e=>{state.loc=e.target.value;render();});
+document.getElementById("src").addEventListener("change",e=>{state.src=e.target.value;render();});
+document.getElementById("appliedSel").addEventListener("change",e=>{state.applied=e.target.value;render();});
+document.getElementById("selAll").addEventListener("change",e=>{ if(e.target.checked) filtered().forEach(j=>sel.add(j.url)); else sel.clear(); render(); });
+document.getElementById("bulkPrefill").onclick=bulkPrefill;
+document.getElementById("bulkTailor").onclick=bulkTailor;
+document.getElementById("bulkApplied").onclick=bulkApplied;
+document.getElementById("bulkOpen").onclick=bulkOpen;
+document.getElementById("bulkClear").onclick=bulkClear;
+const stats=[...document.querySelectorAll(".stat")];
+stats.forEach(s=>s.addEventListener("click",()=>{state.queue=s.getAttribute("data-q");stats.forEach(x=>x.classList.toggle("active",x===s));render();}));
+const clip=s=>{ s=String(s||""); return s.length>140?s.slice(0,140)+"…":s; };
+function openDrawer(which){
+  document.getElementById("drawer").classList.add("open");
+  document.getElementById("drawerBackdrop").classList.add("show");
+  const map={profile:"profilePanel",target:"targetPanel",setup:"setupPanel"};
+  for(const k in map){ const el=document.getElementById(map[k]); if(el) el.open=(k===which); }
+}
+function closeDrawer(){ document.getElementById("drawer").classList.remove("open"); document.getElementById("drawerBackdrop").classList.remove("show"); }
+document.getElementById("profileToggle").onclick=()=>openDrawer("profile");
+document.getElementById("targetsToggle").onclick=()=>openDrawer("target");
+document.getElementById("setupToggle").onclick=()=>openDrawer("setup");
+document.getElementById("drawerClose").onclick=closeDrawer;
+document.getElementById("drawerBackdrop").onclick=closeDrawer;
+
+/* role filter auto-populated from searched titles */
+function getSavedRoles(){ try{ return JSON.parse(localStorage.getItem("searchedRoles")||"[]"); }catch(e){ return []; } }
+function saveRoles(arr){ try{ localStorage.setItem("searchedRoles",JSON.stringify(arr)); }catch(e){} }
+function addSearchedTitles(titles){
+  const set=getSavedRoles(); for(const t of titles){ const v=(t||"").trim(); if(v && !set.includes(v)) set.push(v); }
+  saveRoles(set); populateRoleFilter();
+}
+function populateRoleFilter(){
+  const sel=document.getElementById("roleFilter"), cur=sel.value;
+  sel.innerHTML='<option value="">All roles</option>';
+  for(const r of getSavedRoles()){ const o=document.createElement("option"); o.value=r; o.textContent=r; sel.appendChild(o); }
+  sel.value=cur;
+}
+document.getElementById("roleFilter").addEventListener("change",e=>{ state.role=e.target.value; render(); });
+populateRoleFilter();
+
+fetch("/api/me").then(r=>r.json()).then(d=>{ if(d&&d.email) document.getElementById("userChip").textContent=d.name||d.email; }).catch(()=>{});
+document.getElementById("logoutBtn").onclick=async()=>{ await fetch("/api/logout",{method:"POST"}); location.href="/login"; };
+const PF_FIELDS=["full_name","email","phone","location","linkedin","github","portfolio_url","work_authorization"];
+async function loadProfile(){
+  try{ const d=await (await fetch("/api/profile")).json(); if(d&&d.profile) for(const f of PF_FIELDS){ const el=document.getElementById("pf_"+f); if(el) el.value=d.profile[f]||""; } }catch(e){}
+}
+document.getElementById("saveProfile").onclick=async()=>{
+  const body={}; for(const f of PF_FIELDS){ const el=document.getElementById("pf_"+f); if(el) body[f]=el.value.trim(); }
+  const btn=document.getElementById("saveProfile"); btn.disabled=true;
+  try{ const d=await (await fetch("/api/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json(); toast(d.ok?"Details saved — pre-fill will use these.":"⚠️ Could not save"); }catch(e){ toast("⚠️ "+e.message); }
+  btn.disabled=false;
+};
+loadProfile();
+
+/* theme */
+function applyTheme(t){ document.documentElement.setAttribute("data-theme",t); try{localStorage.setItem("theme",t)}catch(e){}; const b=document.getElementById("themeToggle"); if(b) b.textContent=(t==="dark"?"☀️":"🌙"); }
+applyTheme((function(){try{return localStorage.getItem("theme")}catch(e){return null}})()||"light");
+document.getElementById("themeToggle").onclick=()=>applyTheme(document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark");
+
+/* résumé in profile */
+async function loadResume(){
+  try{ const d=await (await fetch("/api/resume")).json();
+    document.getElementById("resumeStatus").textContent=d.has?"✓ Résumé on file":"No résumé uploaded yet — upload one to tailor & pre-fill.";
+    const v=document.getElementById("viewResume"); if(d.has){ v.style.display=""; v.href=d.url; } else v.style.display="none";
+  }catch(e){}
+}
+document.getElementById("uploadResume").onclick=async()=>{
+  const f=document.getElementById("profResumeFile").files[0]; if(!f){ toast("Pick a résumé file first."); return; }
+  const btn=document.getElementById("uploadResume"); btn.disabled=true; toast("Uploading résumé…",true);
+  try{ const resume={name:f.name,mime:f.type||"application/octet-stream",base64:await readB64(f)};
+    const d=await (await fetch("/api/resume",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({resume})})).json();
+    toast(d.ok?("Résumé saved"+(d.note?(" ("+d.note+")"):"")+"."):("⚠️ "+(d.error||"failed"))); await loadResume();
+  }catch(e){ toast("⚠️ "+e.message); } btn.disabled=false;
+};
+
+/* tailor preview modal */
+let previewJob=null;
+function openPreview(d,j){ previewJob=j; const url="/files/"+(d.htmlUrl||d.pdfUrl||""); document.getElementById("previewFrame").src=url; document.getElementById("previewTitle").textContent="Tailored résumé — "+(j.company||""); document.getElementById("previewModal").classList.add("show"); }
+function closePreview(){ document.getElementById("previewModal").classList.remove("show"); document.getElementById("previewFrame").src="about:blank"; }
+document.getElementById("previewClose").onclick=closePreview;
+document.getElementById("previewModal").addEventListener("click",e=>{ if(e.target.id==="previewModal") closePreview(); });
+document.getElementById("previewPrefill").onclick=()=>{ const j=previewJob; closePreview(); if(j) doPrefill(j,{disabled:false}); };
+
+loadResume();
+loadJobs();
+</script>
+</body>
+</html>

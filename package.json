@@ -15,7 +15,18 @@
     "rollback": "node update-system.mjs rollback",
     "liveness": "node check-liveness.mjs",
     "scan": "node scan.mjs",
-    "gemini:eval": "node gemini-eval.mjs"
+    "gemini:eval": "node gemini-eval.mjs",
+    "triage": "node triage.mjs",
+    "dashboard": "node dashboard.mjs",
+    "refresh": "node scan.mjs && node triage.mjs && node dashboard.mjs",
+    "serve": "node server.mjs",
+    "tailor": "node tailor.mjs",
+    "prefill": "node prefill.mjs",
+    "prune": "node prune-history.mjs",
+    "chrome": "'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' --remote-debugging-port=9222",
+    "daily": "node daily.mjs",
+    "supabase:test": "node supabase-test.mjs",
+    "supabase:migrate": "node migrate-to-supabase.mjs"
   },
   "keywords": [
     "ai",
@@ -24,7 +35,7 @@
     "career",
     "automation"
   ],
-  "author": "Santiago Fernández de Valderrama <hi@santifer.io> (https://santifer.io)",
+  "author": "Santiago Fern\u00e1ndez de Valderrama <hi@santifer.io> (https://santifer.io)",
   "homepage": "https://santifer.io",
   "repository": {
     "type": "git",
@@ -35,6 +46,7 @@
     "@google/generative-ai": "^0.24.1",
     "dotenv": "^16.4.5",
     "js-yaml": "^4.1.1",
-    "playwright": "^1.58.1"
+    "playwright": "^1.58.1",
+    "@supabase/supabase-js": "^2.45.0"
   }
 }

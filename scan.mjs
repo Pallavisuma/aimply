@@ -17,17 +17,26 @@
 
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from 'fs';
 import yaml from 'js-yaml';
+import 'dotenv/config';
+import * as jsearchProvider from './providers/jsearch.mjs';
+import * as adzunaProvider from './providers/adzuna.mjs';
+import * as remotiveProvider from './providers/remotive.mjs';
+import * as themuseProvider from './providers/themuse.mjs';
+import * as joobleProvider from './providers/jooble.mjs';
+import { isUSLocation } from './location.mjs';
 const parseYaml = yaml.load;
+const SEARCH_PROVIDERS = [jsearchProvider, adzunaProvider, remotiveProvider, themuseProvider, joobleProvider];
 
 // ── Config ──────────────────────────────────────────────────────────
 
-const PORTALS_PATH = 'portals.yml';
-const SCAN_HISTORY_PATH = 'data/scan-history.tsv';
-const PIPELINE_PATH = 'data/pipeline.md';
-const APPLICATIONS_PATH = 'data/applications.md';
+const DATA_DIR = process.env.CAREER_OPS_DATA_DIR || 'data';
+const PORTALS_PATH = process.env.CAREER_OPS_PORTALS || 'portals.yml';
+const SCAN_HISTORY_PATH = `${DATA_DIR}/scan-history.tsv`;
+const PIPELINE_PATH = `${DATA_DIR}/pipeline.md`;
+const APPLICATIONS_PATH = `${DATA_DIR}/applications.md`;
 
 // Ensure required directories exist (fresh setup)
-mkdirSync('data', { recursive: true });
+mkdirSync(DATA_DIR, { recursive: true });
 
 const CONCURRENCY = 10;
 const FETCH_TIMEOUT_MS = 10_000;
@@ -81,6 +90,7 @@ function parseGreenhouse(json, companyName) {
     url: j.absolute_url || '',
     company: companyName,
     location: j.location?.name || '',
+    posted: j.updated_at || '',
   }));
 }
 
@@ -91,6 +101,7 @@ function parseAshby(json, companyName) {
     url: j.jobUrl || '',
     company: companyName,
     location: j.location || '',
+    posted: j.publishedAt || j.updatedAt || '',
   }));
 }
 
@@ -101,6 +112,7 @@ function parseLever(json, companyName) {
     url: j.hostedUrl || '',
     company: companyName,
     location: j.categories?.location || '',
+    posted: j.createdAt ? new Date(j.createdAt).toISOString() : '',
   }));
 }
 
@@ -126,10 +138,15 @@ function buildTitleFilter(titleFilter) {
   const positive = (titleFilter?.positive || []).map(k => k.toLowerCase());
   const negative = (titleFilter?.negative || []).map(k => k.toLowerCase());
 
-  return (title) => {
-    const lower = title.toLowerCase();
-    const hasPositive = positive.length === 0 || positive.some(k => lower.includes(k));
-    const hasNegative = negative.some(k => lower.includes(k));
+  return (title, location) => {
+    const lowerTitle = title.toLowerCase();
+    const lowerLocation = (location || '').toLowerCase();
+    
+    const hasPositive = positive.length === 0 || positive.some(k => lowerTitle.includes(k.toLowerCase()));
+    const hasNegative = negative.some(k => {
+      const kw = k.toLowerCase();
+      return lowerTitle.includes(kw) || lowerLocation.includes(kw);
+    });
     return hasPositive && !hasNegative;
   };
 }
@@ -198,7 +215,7 @@ function appendToPipeline(offers) {
     const procIdx = text.indexOf('## Procesadas');
     const insertAt = procIdx === -1 ? text.length : procIdx;
     const block = `\n${marker}\n\n` + offers.map(o =>
-      `- [ ] ${o.url} | ${o.company} | ${o.title}`
+      `- [ ] ${o.url} | ${o.company} | ${o.title} | ${o.location || 'Unknown'}`
     ).join('\n') + '\n\n';
     text = text.slice(0, insertAt) + block + text.slice(insertAt);
   } else {
@@ -208,7 +225,7 @@ function appendToPipeline(offers) {
     const insertAt = nextSection === -1 ? text.length : nextSection;
 
     const block = '\n' + offers.map(o =>
-      `- [ ] ${o.url} | ${o.company} | ${o.title}`
+      `- [ ] ${o.url} | ${o.company} | ${o.title} | ${o.location || 'Unknown'}`
     ).join('\n') + '\n';
     text = text.slice(0, insertAt) + block + text.slice(insertAt);
   }
@@ -223,7 +240,7 @@ function appendToScanHistory(offers, date) {
   }
 
   const lines = offers.map(o =>
-    `${o.url}\t${date}\t${o.source}\t${o.title}\t${o.company}\tadded`
+    `${o.url}\t${date}\t${o.source}\t${o.title}\t${o.company}\tadded\t${(o.location||'').replace(/\t/g,' ')}\t${(o.posted||'')}`
   ).join('\n') + '\n';
 
   appendFileSync(SCAN_HISTORY_PATH, lines, 'utf-8');
@@ -264,17 +281,39 @@ async function main() {
   const config = parseYaml(readFileSync(PORTALS_PATH, 'utf-8'));
   const companies = config.tracked_companies || [];
   const titleFilter = buildTitleFilter(config.title_filter);
+  // Search-provider results are already intentful (the query IS the role),
+  // so only screen them with the negative list — not the AI/ML positive whitelist.
+  const negativeOnly = (() => {
+    const neg = (config.title_filter?.negative || []).map(k => k.toLowerCase());
+    return (title, location) => {
+      const t = (title || '').toLowerCase(), l = (location || '').toLowerCase();
+      return !neg.some(k => t.includes(k) || l.includes(k));
+    };
+  })();
+  const lf = config.location_filter || {};
+  const usOnly = !!lf.us_only;
+  const locStrict = !!lf.strict;
+  let totalNonUS = 0;
 
-  // 2. Filter to enabled companies with detectable APIs
+  // 2a. Search-provider entries (JSearch / Adzuna): one entry = many companies.
+  const searchEntries = companies
+    .filter(c => c.enabled !== false)
+    .filter(c => !filterCompany || c.name.toLowerCase().includes(filterCompany))
+    .map(c => ({ ...c, _provider: SEARCH_PROVIDERS.find(p => p.detect(c)) }))
+    .filter(c => c._provider);
+
+  // 2b. Company-ATS entries with detectable APIs (Greenhouse/Ashby/Lever).
   const targets = companies
     .filter(c => c.enabled !== false)
     .filter(c => !filterCompany || c.name.toLowerCase().includes(filterCompany))
+    .filter(c => !SEARCH_PROVIDERS.some(p => p.detect(c)))
     .map(c => ({ ...c, _api: detectApi(c) }))
     .filter(c => c._api !== null);
 
-  const skippedCount = companies.filter(c => c.enabled !== false).length - targets.length;
+  const enabledCount = companies.filter(c => c.enabled !== false).length;
+  const skippedCount = enabledCount - targets.length - searchEntries.length;
 
-  console.log(`Scanning ${targets.length} companies via API (${skippedCount} skipped — no API detected)`);
+  console.log(`Scanning ${targets.length} companies via API + ${searchEntries.length} market searches (${skippedCount} skipped — no API detected)`);
   if (dryRun) console.log('(dry run — no files will be written)\n');
 
   // 3. Load dedup sets
@@ -289,38 +328,54 @@ async function main() {
   const newOffers = [];
   const errors = [];
 
+  // Shared per-job processing: title filter + dedup + collect.
+  const processJobs = (jobs, source, filterFn = titleFilter) => {
+    totalFound += jobs.length;
+    for (const job of jobs) {
+      if (!filterFn(job.title, job.location)) {
+        totalFiltered++;
+        continue;
+      }
+      if (usOnly && !isUSLocation(job.location, { strict: locStrict })) {
+        totalNonUS++;
+        continue;
+      }
+      if (seenUrls.has(job.url)) {
+        totalDupes++;
+        continue;
+      }
+      const key = `${job.company.toLowerCase()}::${job.title.toLowerCase()}`;
+      if (seenCompanyRoles.has(key)) {
+        totalDupes++;
+        continue;
+      }
+      // Mark as seen to avoid intra-scan dupes
+      seenUrls.add(job.url);
+      seenCompanyRoles.add(key);
+      newOffers.push({ ...job, source });
+    }
+  };
+
   const tasks = targets.map(company => async () => {
     const { type, url } = company._api;
     try {
       const json = await fetchJson(url);
-      const jobs = PARSERS[type](json, company.name);
-      totalFound += jobs.length;
-
-      for (const job of jobs) {
-        if (!titleFilter(job.title)) {
-          totalFiltered++;
-          continue;
-        }
-        if (seenUrls.has(job.url)) {
-          totalDupes++;
-          continue;
-        }
-        const key = `${job.company.toLowerCase()}::${job.title.toLowerCase()}`;
-        if (seenCompanyRoles.has(key)) {
-          totalDupes++;
-          continue;
-        }
-        // Mark as seen to avoid intra-scan dupes
-        seenUrls.add(job.url);
-        seenCompanyRoles.add(key);
-        newOffers.push({ ...job, source: `${type}-api` });
-      }
+      processJobs(PARSERS[type](json, company.name), `${type}-api`);
     } catch (err) {
       errors.push({ company: company.name, error: err.message });
     }
   });
 
-  await parallelFetch(tasks, CONCURRENCY);
+  const searchTasks = searchEntries.map(entry => async () => {
+    try {
+      const jobs = await entry._provider.fetch(entry);
+      processJobs(jobs, entry._provider.id, negativeOnly);
+    } catch (err) {
+      errors.push({ company: entry.name, error: err.message });
+    }
+  });
+
+  await parallelFetch([...tasks, ...searchTasks], CONCURRENCY);
 
   // 5. Write results
   if (!dryRun && newOffers.length > 0) {
@@ -335,6 +390,7 @@ async function main() {
   console.log(`Companies scanned:     ${targets.length}`);
   console.log(`Total jobs found:      ${totalFound}`);
   console.log(`Filtered by title:     ${totalFiltered} removed`);
+  if (usOnly) console.log(`Filtered non-US:       ${totalNonUS} removed`);
   console.log(`Duplicates:            ${totalDupes} skipped`);
   console.log(`New offers added:      ${newOffers.length}`);
 
