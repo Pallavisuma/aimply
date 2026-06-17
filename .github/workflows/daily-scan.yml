@@ -64,7 +64,7 @@ jobs:
 
       - name: Email digest
         if: steps.digest.outputs.new_count != '0'
-        uses: dawidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v17
         with:
           server_address: ${{ secrets.MAIL_SERVER }}
           server_port: ${{ secrets.MAIL_PORT }}
